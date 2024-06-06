@@ -1,6 +1,8 @@
 import argparse
 import enum
 import comfy.options
+import sys
+import logging
 
 class EnumAction(argparse.Action):
     """
@@ -134,9 +136,25 @@ if args.windows_standalone_build:
 if args.disable_auto_launch:
     args.auto_launch = False
 
-import logging
-logging_level = logging.INFO
-if args.verbose:
-    logging_level = logging.DEBUG
+logger = logging.getLogger()
 
-logging.basicConfig(format="%(message)s", level=logging_level)
+if not logger.handlers:
+    logging_level = logging.INFO
+    if args.verbose:
+        logging_level = logging.DEBUG
+
+    logger.setLevel(logging_level)
+
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setLevel(logging.INFO)
+    stdout_handler.addFilter(lambda record: record.levelno <= logging.WARNING)  # Only handle INFO and WARNING
+
+    stderr_handler = logging.StreamHandler(sys.stderr)
+    stderr_handler.setLevel(logging.ERROR)  # Handle ERROR and CRITICAL
+
+    formatter = logging.Formatter('%(message)s')
+    stdout_handler.setFormatter(formatter)
+    stderr_handler.setFormatter(formatter)
+
+    logger.addHandler(stdout_handler)
+    logger.addHandler(stderr_handler)
